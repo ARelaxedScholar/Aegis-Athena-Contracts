@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package simulation;
+
+// The SimulationService is our gRPC service interface.
+service SimulationService {
+  // ExecuteSimulation distributes one simulation task, returning performance metrics.
+  rpc ExecuteSimulation (SimulationTask) returns (SimulationResult);
+}
+
+// A simulation task contains a batch of portfolios and associated market scenarios.
+message SimulationTask {
+  // The portfolios to simulate.
+  repeated Portfolio portfolios = 1;
+  // A set of market scenario time-series returns.
+  repeated SimulationScenario scenario_returns = 2;
+  // Economic parameters that affect the simulation.
+  double money_to_invest = 3;
+  double risk_free_rate = 4;
+  double time_horizon_in_days = 5;
+}
+
+// Basic portfolio structure consisting of an identifier and allocation weights.
+message Portfolio {
+  int32 id = 1;
+  repeated double weights = 2;
+}
+
+// Each market scenario is represented by a time series of returns.
+message SimulationScenario {
+  repeated double returns = 1;
+}
+
+// The performance metrics computed for each portfolio.
+message PortfolioPerformance {
+  int32 id = 1;
+  double annualized_return = 2;
+  double percent_annualized_volatility = 3;
+  double sharpe_ratio = 4;
+}
+
+// The simulation result aggregates the performance metrics for all portfolios.
+message SimulationResult {
+  repeated PortfolioPerformance performances = 1;
+}
