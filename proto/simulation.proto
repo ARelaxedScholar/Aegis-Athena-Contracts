@@ -2,44 +2,47 @@ syntax = "proto3";
 
 package simulation;
 
-// The SimulationService is our gRPC service interface.
+// The SimulationService with a batch processing method.
 service SimulationService {
-  // ExecuteSimulation distributes one simulation task, returning performance metrics.
-  rpc ExecuteSimulation (SimulationTask) returns (SimulationResult);
+  // RunBatch distributes a batch of simulation tasks, returning aggregated performance metrics.
+  rpc RunBatch (SimulationBatchRequest) returns (SimulationBatchResult);
 }
 
-// A simulation task contains a batch of portfolios and associated market scenarios.
-message SimulationTask {
-  // The portfolios to simulate.
-  repeated Portfolio portfolios = 1;
-  // A set of market scenario time-series returns.
-  repeated SimulationScenario scenario_returns = 2;
-  // Economic parameters that affect the simulation.
-  double money_to_invest = 3;
-  double risk_free_rate = 4;
-  double time_horizon_in_days = 5;
+// The batch request for simulation.
+message SimulationBatchRequest {
+  // The serialized blob for portfolios (e.g. using bincode serialization on a vector of Portfolio).
+  bytes portfolios_blob = 1;
+  // Configuration parameters for the batch simulation.
+  EvolutionConfig config = 2;
+  // Number of simulation iterations (i.e. batch size).
+  int32 iterations = 3;
+  // The seed for ensuring reproducibility.
+  uint64 seed = 4;
 }
 
-// Basic portfolio structure consisting of an identifier and allocation weights.
-message Portfolio {
-  int32 id = 1;
-  repeated double weights = 2;
+// Simulation configuration carrying only the parameters needed by the simulation server.
+message EvolutionConfig {
+  // The time horizon of the simulation in days.
+  int32 time_horizon_in_days = 1;
+  // The amount of money that is available to invest.
+  double money_to_invest = 2;
+  // The risk free rate used for computing performance metrics.
+  double risk_free_rate = 3;
 }
 
-// Each market scenario is represented by a time series of returns.
+// The batch result aggregates metrics over all iterations for each portfolio.
+message SimulationBatchResult {
+  // Aggregated sum of returns for each portfolio.
+  repeated double sum_returns = 1;
+  // Aggregated sum of volatilities for each portfolio.
+  repeated double sum_volatilities = 2;
+  // Aggregated sum of Sharpe ratios for each portfolio.
+  repeated double sum_sharpes = 3;
+  // The market scenario (i.e. series of returns) from the last simulation.
+  SimulationScenario last_scenario = 4;
+}
+
+// A market scenario, represented as a time series of returns.
 message SimulationScenario {
   repeated double returns = 1;
-}
-
-// The performance metrics computed for each portfolio.
-message PortfolioPerformance {
-  int32 id = 1;
-  double annualized_return = 2;
-  double percent_annualized_volatility = 3;
-  double sharpe_ratio = 4;
-}
-
-// The simulation result aggregates the performance metrics for all portfolios.
-message SimulationResult {
-  repeated PortfolioPerformance performances = 1;
 }
