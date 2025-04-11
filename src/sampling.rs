@@ -27,8 +27,8 @@ impl PySampler {
             "factor" => Sampler::factor_model_synthetic(assets, factors, periods, seed)
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?,
             "normal" => {
-                Sampler::normal(vec![0.0; assets], vec![1.0; assets * assets], periods, seed)
-            }
+                Sampler::normal(&vec![0.0; assets], &vec![1.0; assets * assets], periods, seed)
+            }.map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?,
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                     "mode must be \"factor\" or \"normal\"",
@@ -152,24 +152,58 @@ impl Sampler {
         })
     }
 
-    pub fn normal(
-        means: Vec<f64>,
-        cov: Vec<f64>,
+    pub fn run_batch_factor_model_maker(
+        mu_assets: &[f64],
+        covariance_assets: &[Vec<f64>],
         periods_to_sample: usize,
         seed: Option<u64>,
-    ) -> Self {
+    ) -> Result<Self, String> {
+        let normal_sampler = Self::normal(mu_assets, &covariance_assets.iter().flatten().copied().collect::<Vec<f64>>(), periods_to_sample, seed)?;
+        let (periods_to_sample, normal_distribution, rng) = {if let Self::Normal { periods_to_sample, normal_distribution, rng,} = normal_sampler {
+            (periods_to_sample, normal_distribution, rng)
+        } else {
+            panic!("Schema of Normal Distribution sampler was changed without updating related function.")
+        }};
+        
+        Ok(Sampler::FactorModel {
+            // we don't care since the important info is passed by the asset_means implicitly
+            // or is only useful for logging/construction
+            assets_under_management: mu_assets.len(),
+            number_of_factors: 0,
+            mu_factors: vec![0.],
+            covariance_factors: vec![vec![0.]],
+            loadings: vec![vec![0.]],
+            idiosyncratic_variances: vec![0.],
+
+            // Given but yet again we don't care?
+            mu_assets: mu_assets.to_vec(),
+            covariance_assets: covariance_assets.to_vec(),
+
+            // This is what is actually used for sampling
+            periods_to_sample,
+            normal_distribution,
+            rng,
+        })
+    }
+
+    pub fn normal(
+        means: &[f64],
+        cov: &[f64],
+        periods_to_sample: usize,
+        seed: Option<u64>,
+    ) -> Result<Self, String> {
         let rng = if let Some(s) = seed {
             ChaCha20Rng::seed_from_u64(s)
         } else {
             ChaCha20Rng::from_entropy()
         };
 
-        let normal_distribution = MultivariateNormal::new(means, cov).unwrap();
-        Sampler::Normal {
+        let normal_distribution = MultivariateNormal::new(means.to_vec(), cov.to_vec()).map_err(|e| format!("Failed to create distribution for normal sampler: {}", e))?;
+        Ok(Sampler::Normal {
             periods_to_sample,
             normal_distribution,
             rng,
-        }
+        })
     }
 
     fn generate_covariance_matrix(number_of_factors: usize) -> Result<Vec<Vec<f64>>, String> {
