@@ -154,16 +154,24 @@ impl Sampler {
 
     pub fn run_batch_factor_model_maker(
         mu_assets: &[f64],
-        covariance_assets: &[Vec<f64>],
+        covariance_assets: &[f64],
         periods_to_sample: usize,
         seed: Option<u64>,
     ) -> Result<Self, String> {
-        let normal_sampler = Self::normal(mu_assets, &covariance_assets.iter().flatten().copied().collect::<Vec<f64>>(), periods_to_sample, seed)?;
+        let normal_sampler = Self::normal(mu_assets, &covariance_assets, periods_to_sample, seed)?;
         let (periods_to_sample, normal_distribution, rng) = {if let Self::Normal { periods_to_sample, normal_distribution, rng,} = normal_sampler {
             (periods_to_sample, normal_distribution, rng)
         } else {
             panic!("Schema of Normal Distribution sampler was changed without updating related function.")
         }};
+        
+        let unflatten_square = |flat: Vec<f64>, n: usize|  -> Vec<Vec<f64>> {
+            assert_eq!(flat.len(), n * n, "flat.len() must be n*n");
+            flat
+                .chunks(n)          // iterator over &[f64] slices of length n
+                .map(|row| row.to_vec())
+                .collect()          // Vec<Vec<f64>>
+        };
         
         Ok(Sampler::FactorModel {
             // we don't care since the important info is passed by the asset_means implicitly
@@ -177,7 +185,7 @@ impl Sampler {
 
             // Given but yet again we don't care?
             mu_assets: mu_assets.to_vec(),
-            covariance_assets: covariance_assets.to_vec(),
+            covariance_assets: unflatten_square(covariance_assets.to_vec(), mu_assets.len()),
 
             // This is what is actually used for sampling
             periods_to_sample,
