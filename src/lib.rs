@@ -6,5 +6,5 @@ pub mod simulation {
 // modules
 pub mod common_consts;
 pub mod common_portfolio_evolution_ds;
-pub mod sampling;
 pub mod portfolio;
+pub mod sampling;
