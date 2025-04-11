@@ -2,11 +2,11 @@ use crate::common_consts::FLOAT_COMPARISON_EPSILON;
 use rayon::prelude::*;
 
 #[derive(Debug, Clone)]
-struct PortfolioPerformance {
-    portfolio_returns: Vec<f64>,
-    annualized_return: f64,
-    percent_annualized_volatility: f64,
-    sharpe_ratio: f64,
+pub struct PortfolioPerformance {
+    pub portfolio_returns: Vec<f64>,
+    pub annualized_return: f64,
+    pub percent_annualized_volatility: f64,
+    pub sharpe_ratio: f64,
 }
 
 pub fn compute_portfolio_performance(
