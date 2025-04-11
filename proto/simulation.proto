@@ -8,16 +8,45 @@ service SimulationService {
   rpc RunBatch (SimulationBatchRequest) returns (SimulationBatchResult);
 }
 
-// The batch request for simulation.
+// We only send the parameters needed to rebuild a Sampler
+message SamplerConfig {
+  oneof kind {
+    FactorModelConfig factor_model = 1;
+    NormalConfig      normal       = 2;
+    SeriesGanConfig   series_gan   = 3;
+  }
+}
+
+// All the data needed to reconstruct your FactorModel
+message FactorModelConfig {
+  repeated double mu_factors             = 1;
+  repeated double covariance_factors     = 2;  // flattened row-major
+  repeated double loadings               = 3;  // flattened row-major
+  repeated double idiosyncratic_variances= 4;
+  repeated double mu_assets              = 5;
+  repeated double covariance_assets      = 6;  // flattened
+  uint64         seed                    = 7;
+}
+
+// Data for the “normal” sampler
+message NormalConfig {
+  repeated double means = 1;
+  repeated double cov    = 2;  // flattened covariance matrix
+  uint64         seed   = 3;
+}
+
+// Data for the GAN sampler
+message SeriesGanConfig {
+  uint32 periods = 1;
+  uint64 seed    = 2;
+}
+
+// Now embed that in your batch request
 message SimulationBatchRequest {
-  // The serialized blob for portfolios (e.g. using bincode serialization on a vector of Portfolio).
-  bytes portfolios_blob = 1;
-  // Configuration parameters for the batch simulation.
-  EvolutionConfig config = 2;
-  // Number of simulation iterations (i.e. batch size).
-  int32 iterations = 3;
-  // The seed for ensuring reproducibility.
-  uint64 seed = 4;
+  SamplerConfig sampler         = 1;
+  bytes          portfolios_blob= 2;
+  EvolutionConfig config        = 3;
+  int32          iterations     = 4;
 }
 
 // Simulation configuration carrying only the parameters needed by the simulation server.
