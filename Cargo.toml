@@ -4,10 +4,17 @@ version = "0.1.0"
 edition = "2024"
 
 
-
 [build-dependencies]
 tonic-build = "0.13.0"
 
 [dependencies]
-prost = "0.13.5"
-tonic = "0.13.0"
+nalgebra   = "0.33.2"
+prost       = "0.13.5"
+pyo3        = "0.24.1"
+rand        = {version= "0.8", features=["std_rng"]}
+rand_distr  = "0.4"
+rand_chacha = "0.3"
+rayon       = "1.10.0"
+serde       = { version = "1.0.219", features = ["derive"] }
+statrs      = "0.18.0"
+tonic       = "0.13.0"

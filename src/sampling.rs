@@ -1,7 +1,9 @@
-
 use pyo3::prelude::*;
-use rand::distributions::Uniform;
-use rand::{Rng, SeedableRng, rngs::StdRng};
+
+use nalgebra::base::dimension::Dyn;
+use rand::{Rng, SeedableRng, distributions::Distribution, rngs::OsRng};
+use rand_chacha::ChaCha20Rng; // <— new
+use rand_distr::Uniform;
 use statrs::distribution::MultivariateNormal;
 
 #[pyclass]
@@ -62,14 +64,15 @@ pub enum Sampler {
         mu_assets: Vec<f64>,
         covariance_assets: Vec<Vec<f64>>,
 
-        normal_distribution: MultivariateNormal,
-        rng: StdRng,
+        // dynamic-dimension MVN
+        normal_distribution: MultivariateNormal<Dyn>,
+        rng: ChaCha20Rng,
     },
 
     Normal {
         periods_to_sample: usize,
-        normal_distribution: MultivariateNormal,
-        rng: StdRng,
+        normal_distribution: MultivariateNormal<Dyn>,
+        rng: ChaCha20Rng,
     },
 
     SeriesGAN(usize),
@@ -86,9 +89,11 @@ impl Sampler {
             return Err("Assets and Factors should be positives".into());
         }
 
-        let mut rng = seed
-            .map(StdRng::seed_from_u64)
-            .unwrap_or_else(StdRng::from_entropy);
+        let mut rng = if let Some(s) = seed {
+            ChaCha20Rng::seed_from_u64(s)
+        } else {
+            ChaCha20Rng::from_entropy()
+        };
 
         let small_returns = 0.001;
         let mu_factors = vec![small_returns; number_of_factors];
@@ -153,9 +158,12 @@ impl Sampler {
         periods_to_sample: usize,
         seed: Option<u64>,
     ) -> Self {
-        let rng = seed
-            .map(StdRng::seed_from_u64)
-            .unwrap_or_else(StdRng::from_entropy);
+        let rng = if let Some(s) = seed {
+            ChaCha20Rng::seed_from_u64(s)
+        } else {
+            ChaCha20Rng::from_entropy()
+        };
+
         let normal_distribution = MultivariateNormal::new(means, cov).unwrap();
         Sampler::Normal {
             periods_to_sample,
@@ -168,7 +176,8 @@ impl Sampler {
         if number_of_factors == 0 {
             return Err("Number of factors must be greater than zero".to_string());
         }
-        let mut rng = StdRng::from_entropy();
+        let mut rng = ChaCha20Rng::from_entropy();
+
         let uniform = Uniform::new(0.01, 0.2);
 
         let mut m = vec![vec![0.0; number_of_factors]; number_of_factors];
@@ -224,9 +233,10 @@ impl Sampler {
                 rng,
                 ..
             } => normal_distribution
+                .clone()
                 .sample_iter(rng)
                 .take(*periods_to_sample)
-                .map(|row| row.to_vec())
+                .map(|row| row.as_slice().to_vec())
                 .collect(),
 
             Sampler::Normal {
@@ -234,9 +244,10 @@ impl Sampler {
                 periods_to_sample,
                 rng,
             } => normal_distribution
+                .clone()
                 .sample_iter(rng)
                 .take(*periods_to_sample)
-                .map(|row| row.to_vec())
+                .map(|row| row.as_slice().to_vec())
                 .collect(),
 
             Sampler::SeriesGAN(periods_to_sample) => vec![vec![1.0]; *periods_to_sample],
@@ -246,7 +257,7 @@ impl Sampler {
     pub fn reseed(&mut self, seed: u64) {
         match self {
             Sampler::FactorModel { rng, .. } | Sampler::Normal { rng, .. } => {
-                *rng = StdRng::seed_from_u64(seed);
+                *rng = ChaCha20Rng::seed_from_u64(seed);
             }
             _ => {}
         }
