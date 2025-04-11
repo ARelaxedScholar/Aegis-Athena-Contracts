@@ -49,10 +49,12 @@ message SimulationBatchRequest {
 message EvolutionConfig {
   // The time horizon of the simulation in days.
   int32 time_horizon_in_days = 1;
+  // period to sample
+  uint32 periods_to_sample = 2;
   // The amount of money that is available to invest.
-  double money_to_invest = 2;
+  double money_to_invest = 3;
   // The risk free rate used for computing performance metrics.
-  double risk_free_rate = 3;
+  double risk_free_rate = 4;
 }
 
 // The batch result aggregates metrics over all iterations for each portfolio.
