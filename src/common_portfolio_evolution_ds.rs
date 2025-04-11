@@ -9,7 +9,7 @@ struct PortfolioPerformance {
     sharpe_ratio: f64,
 }
 
-fn compute_portfolio_performance(
+pub fn compute_portfolio_performance(
     returns: &[Vec<f64>],
     weights: &[f64],
     money_to_invest: f64,
