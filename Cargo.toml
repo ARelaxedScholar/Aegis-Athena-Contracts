@@ -19,3 +19,4 @@ serde       = { version = "1.0.219", features = ["derive"] }
 statrs      = "0.18.0"
 tonic       = "0.13.0"
 bincode = "2.0.1"
+utoipa = "5.3.1"

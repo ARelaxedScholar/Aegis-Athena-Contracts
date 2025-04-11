@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use bincode::{Decode, Encode};
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Decode, Encode)]
+#[derive(Debug, Clone, Serialize, Deserialize, Decode, Encode, ToSchema)]
 pub struct Portfolio {
     pub id: usize,
     pub rank: Option<usize>,
