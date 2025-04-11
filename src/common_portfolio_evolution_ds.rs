@@ -1,3 +1,6 @@
+use crate::common_consts::FLOAT_COMPARISON_EPSILON;
+use rayon::prelude::*;
+
 #[derive(Debug, Clone)]
 struct PortfolioPerformance {
     portfolio_returns: Vec<f64>,
