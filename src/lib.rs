@@ -4,7 +4,7 @@ pub mod simulation {
 }
 
 // modules
-mod common_consts;
-mod common_portfolio_evolution_ds;
-mod sampling;
-mod portfolio;
+pub mod common_consts;
+pub mod common_portfolio_evolution_ds;
+pub mod sampling;
+pub mod portfolio;
